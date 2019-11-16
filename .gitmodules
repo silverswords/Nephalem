@@ -1,0 +1,3 @@
+[submodule "Master/projector"]
+	path = Master/projector
+	url = https://github.com/silverswords/projector.git
