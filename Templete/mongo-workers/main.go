@@ -2,71 +2,82 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 )
 
-var (
-	// Name -
-	Name = os.Getenv("NAME")
-	// Password -
-	Password = os.Getenv("PASSWORD")
-	// Ports -
-	Ports = os.Getenv("PORTS")
-)
-
-func main() {
-	fmt.Println(Name, Password, Ports)
-	message := []byte(generateDockerCompose(Name, Password, Ports))
-	err := ioutil.WriteFile("docker-compose.yaml", message, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cmd := exec.Command("/bin/bash", "-c", `echo "#! /bin/bash
-docker-compose up -d " >docker.sh`)
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Printf("Execute Shell:%s failed with error:%s", "echo", err.Error())
-		return
-	}
-
-	cmd = exec.Command("/bin/bash", "-c", "chmod 777 docker.sh")
-	output, err = cmd.Output()
-	if err != nil {
-		fmt.Printf("Execute Shell:%s failed with error:%s", "chmod", err.Error())
-		return
-	}
-
-	command := `./docker.sh .`
-	cmd = exec.Command("/bin/bash", "-c", command)
-	output, err = cmd.Output()
-	if err != nil {
-		fmt.Printf("Execute Shell:%s failed with error:%s", command, err.Error())
-		return
-	}
-	fmt.Printf("Execute Shell:%s finished with output:\n%s", command, string(output))
+var initCmd = []string{
+	"version: '3'\n",
+	"\n",
+	"services:\n",
+	"  mongo:\n",
+	"    container_name: mongo-test\n",
+	"    image: mongo:4.2.0-bionic\n",
+	"    environment:\n",
+	"      MONGO_INITDB_ROOT_USERNAME: root\n",
+	"      MONGO_INITDB_ROOT_PASSWORD: 123456\n",
+	"    volumes:\n",
+	"      - ./single:/data/db\n",
+	"    ports:\n",
+	"      - '127.0.0.1:27047:27017'\n",
+	"    restart: always\n",
 }
 
-func generateDockerCompose(name, password, ports string) string {
+func createFile() {
+	err := os.Mkdir("./mongo_env", 0777)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	data := fmt.Sprintf(
-		`version: "3"
+	fmt.Println("Succeed to create mongo_env")
+}
 
-services:
-  mongo:
-    container_name: %s
-    image: mongo:4.2.0-bionic
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: %s
-    volumes:
-      - ./single:/data/db
-    ports:
-      - "%s"
-    restart: always`, name, password, ports)
+func createCompose() {
+	file, err := os.Create("./mongo_env/docker-compose.yml")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
 
-	return data
+	fmt.Println("Succeed to create ./mongo_env/docker-compose.yml")
+}
+
+func initCompose(cmds []string) {
+	file, err := os.OpenFile("./mongo_env/docker-compose.yml", os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	for i := 0; i < len(cmds); i++ {
+		content := []byte(cmds[i])
+		_, err := file.Write(content)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	fmt.Println("Write file successful")
+}
+
+func startCompose() {
+	_, err := exec.Command("/bin/bash", "-c", "cd ./mongo_env; docker-compose up -d").Output()
+	if err != nil {
+		fmt.Printf("Fail to execute command, error: %s\n", err)
+		return
+	}
+
+	fmt.Println("Succeed to execute command, mongo:4.2.0-bionic, user: root, password: 123456")
+}
+
+func main() {
+	createFile()
+	createCompose()
+	initCompose(initCmd)
+	startCompose()
 }
