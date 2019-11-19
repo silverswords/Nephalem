@@ -21,7 +21,7 @@ var (
 		"      - ./single:/data/db\n",
 		"    ports:\n",
 		"      - '127.0.0.1:27047:27017'\n",
-		"    restart: always\n",
+		"    restart: always",
 	}
 )
 
