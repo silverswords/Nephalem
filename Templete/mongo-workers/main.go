@@ -12,26 +12,17 @@ var (
 		"\n",
 		"services:\n",
 		"  mongo:\n",
-		"    container_name: %s\n",
+		"    container_name: mongo-test\n",
 		"    image: mongo:4.2.0-bionic\n",
 		"    environment:\n",
 		"      MONGO_INITDB_ROOT_USERNAME: root\n",
-		"      MONGO_INITDB_ROOT_PASSWORD: %s\n",
+		"      MONGO_INITDB_ROOT_PASSWORD: 123456\n",
 		"    volumes:\n",
 		"      - ./single:/data/db\n",
 		"    ports:\n",
-		"      - '%s'\n",
+		"      - '127.0.0.1:27047:27017'\n",
 		"    restart: always\n",
 	}
-
-	name      = os.Getenv("Name")
-	nameIndex = 4
-
-	password      = os.Getenv("Password")
-	passwordIndex = 8
-
-	ports      = os.Getenv("Ports")
-	portsIndex = 12
 )
 
 func createFile() {
@@ -40,7 +31,6 @@ func createFile() {
 		fmt.Println(err)
 		return
 	}
-
 	fmt.Println("Succeed to create mongo_env")
 
 	file, err := os.Create("./mongo_env/docker-compose.yml")
@@ -53,13 +43,7 @@ func createFile() {
 	fmt.Println("Succeed to create ./mongo_env/docker-compose.yml")
 }
 
-func fillCompose() {
-	initCmd[nameIndex] = fmt.Sprintf(initCmd[nameIndex], name)
-	initCmd[passwordIndex] = fmt.Sprintf(initCmd[passwordIndex], password)
-	initCmd[portsIndex] = fmt.Sprintf(initCmd[portsIndex], ports)
-}
-
-func createCompose(cmds []string) {
+func initCompose(cmds []string) {
 	file, err := os.OpenFile("./mongo_env/docker-compose.yml", os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
 		fmt.Println(err)
@@ -92,7 +76,6 @@ func startCompose() {
 
 func main() {
 	createFile()
-	fillCompose()
-	createCompose(initCmd)
+	initCompose(initCmd)
 	startCompose()
 }
